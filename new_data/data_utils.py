@@ -130,7 +130,8 @@ def find_next_frame(now_idx, df, _threshold=5.):
             break
         if distance_f2f(df.iloc[j], df.iloc[now_idx]) > 0.85:
             flag_found = True
-        j += 1
+        else:
+            j += 1
     
     if flag_found:
         return j, d
@@ -138,12 +139,10 @@ def find_next_frame(now_idx, df, _threshold=5.):
         return -1, -1
 
 
-def generate_training_sample(df, path_prefix, len_spatial_history=10):
+def generate_training_sample(now_idx, df, path_prefix, len_spatial_history=10):
     """
     Generate one training sample
     """    
-    # choose a now_idx
-    now_idx = np.random.randint(0, high=len(df))
     
     # initialize frame_list, angle_id & angle_list
     frame_list = [path_prefix + df["filename"].iloc[now_idx]]
@@ -158,6 +157,7 @@ def generate_training_sample(df, path_prefix, len_spatial_history=10):
         if next_idx > 0:  # valid next_idx
             # update now_idx with next_idx
             now_idx = next_idx
+            
             # record file name & angle
             frame_list.append(path_prefix + df["filename"].iloc[now_idx])
             angle_list.append(df["angle"].iloc[now_idx])
@@ -170,7 +170,7 @@ def generate_training_sample(df, path_prefix, len_spatial_history=10):
             break
     
     if flag_incomplete_sample:
-        print("Make an incomplete sample. Return None")
+#         print("Make an incomplete sample. Return None")
         return None
     else:
         out = {'frame_list': frame_list,
