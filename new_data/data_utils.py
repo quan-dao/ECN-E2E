@@ -48,7 +48,7 @@ def find_angle_id(idx, bin_edges, df, id_column="angle_id"):
     
     if not flag_found_bin:
         # not found any bin contains this steering angle --> equal to the right edge of the last bin
-        df[id_column].iat[idx] = i
+        df[id_column].iat[idx] = i - 1
     
     
 # HELPER FUNCTION FOR FINDING DISTANCE BETWEEN 2 FRAME
