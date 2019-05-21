@@ -3,6 +3,7 @@ import keras.backend as K
 import pandas as pd
 import cv2 as cv
 import numpy as np
+from tqdm import tqdm
 
 
 #---------------- HELPER FUNCTION -------------------------
@@ -150,4 +151,55 @@ class DataGenerator(keras.utils.Sequence):
             np.random.shuffle(self.indexes)
         
                     
+def generate_validation_data(path_to_csv, img_shape, num_class, Ty=10, LSTM_dim_hidden_states=None, color_img=False):
+    """
+    Generate validation set
+    
+    Input:
+        path_to_csv (str): path to csv file of dataset
+        img_shape (tuple): shape of images
+        num_class (int): number of classes of angles
+        Ty (int): length datastream used to train model
+        LSTM_dim_hidden_states (int): used to train model with LSTM layer
+    """
+    
+    df = pd.read_csv(path_to_csv)
+    
+    num_sample = len(df)
+    X = [np.zeros((num_sample,) + img_shape) for i in range(Ty)]
+    y = [np.zeros((num_sample, num_class)) for i in range(Ty)]
+    
+    img_path_prefix = '/home/user/Bureau/Dataset/udacity/'
+    
+    # Iterate through each idx in training batch
+    for i, idx in enumerate(tqdm(range(num_sample))): 
+        # preprocess
+        file_names_list = df.iloc[idx].frame_list[2: -2].split("', '")
+        angle_id_list = df.iloc[idx].angle_id_list[1: -1].split(", ")
 
+        # read img & angle_id
+        for j, file_name, angle_id in zip(range(Ty), file_names_list, angle_id_list):
+            # read image
+            if not color_img:
+                img = cv.imread(img_path_prefix + file_name, 0)
+            else:
+                img = cv.imread(img_path_prefix + file_name, 1)
+
+            # resize & reshape image
+            img = np.float32(cv.resize(img, (img_shape[1], img_shape[0]), 
+                                       interpolation=cv.INTER_AREA))
+            if len(img.shape) == 2:
+                img = img.reshape((img_shape))
+
+            # add img to input tensor
+            X[j][i, :, :, :] = img
+
+            # get label
+            y[j][i, :] = one_hot_encode(int(angle_id), num_class)
+    if LSTM_dim_hidden_states:
+        a0 = np.zeros((num_sample, LSTM_dim_hidden_states))
+        c0 = np.zeros((num_sample, LSTM_dim_hidden_states))
+        return X + [a0, c0], y
+        
+    return X, y
+    

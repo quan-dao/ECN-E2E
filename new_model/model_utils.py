@@ -97,6 +97,36 @@ def resnet8(input_shape):
     return model
 
 
+def resnet_shorten(input_shape):
+    """
+    Define a shorten version of resnet8 above to serve the idea of free up the last layer so that encoder can
+    learn to extract different features from different image
+    
+    Input:
+        input_shape: shape of input image [n_H, n_W, n_C]
+    
+    Outpt:
+        keras Model instance
+    """
+    # Input
+    X_input = Input(shape=input_shape)
+    
+    # Apply 1st convolution & max pooling on input
+    X = Conv2D(32, (5, 5), strides=[2,2], padding='same', name='conv_0')(X_input)
+    X = MaxPooling2D(pool_size=(3, 3), strides=[2,2])(X) 
+    
+    # First convolutional block
+    X = convolutional_block(X, [32, 32, 32], [3, 3, 1], [2, 1, 2], stage=1)
+    
+    # Second convolutional block
+    X = convolutional_block(X, [64, 64, 64], [3, 3, 1], [2, 1, 2], stage=2)
+    
+    # Define model
+    model = Model(inputs=[X_input], outputs=[X])
+    
+    return model
+
+
 # -------------- Classifier -------------- #
 def _classifier(input_shape, num_class):
     """
@@ -104,7 +134,9 @@ def _classifier(input_shape, num_class):
     """
     X_input = Input(shape=input_shape)
     
-    X = Dense(num_class, activation='relu')(X_input)
+    X = Dense(256, activation='relu')(X_input)
+    
+    X = Dense(num_class, activation='relu')(X)
     
     y = Activation('softmax')(X)
     
