@@ -26,6 +26,17 @@ def save_model(model, name):
     model.save_weights("./model/%s.h5" % name)
 
     
+def save_lstm(lstm_obj, idx):
+    lstm_w = LSTM_cell.get_weights()
+    lstm_w_dict ={}
+    lstm_w_dict['0'] = lstm_w[0]
+    lstm_w_dict['1'] = lstm_w[1]
+    lstm_w_dict['2'] = lstm_w[2]
+
+    with open("./new_model/weights/shared_lstm/shared_lstm_%d_weights_%s.p" % (idx, time_str), 'wb') as fp:
+        pickle.dump(lstm_w_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    
 def one_hot_encode(angle_id, num_class):
     """
     Convert angle id to one-hot encoding vector
@@ -151,7 +162,8 @@ class DataGenerator(keras.utils.Sequence):
             np.random.shuffle(self.indexes)
         
                     
-def generate_dataset(path_to_csv, img_shape, num_class, Ty=10, LSTM_dim_hidden_states=None, color_img=False):
+def generate_dataset(path_to_csv, img_shape, num_class, Ty=10, LSTM_dim_hidden_states=None, additional_input_for_LSTM=False, 
+                     color_img=False):
     """
     Generate validation set
     
@@ -196,7 +208,7 @@ def generate_dataset(path_to_csv, img_shape, num_class, Ty=10, LSTM_dim_hidden_s
 
             # get label
             y[j][i, :] = one_hot_encode(int(angle_id), num_class)
-    if LSTM_dim_hidden_states:
+    if additional_input_for_LSTM:
         a0 = np.zeros((num_sample, LSTM_dim_hidden_states))
         c0 = np.zeros((num_sample, LSTM_dim_hidden_states))
         return X + [a0, c0], y
