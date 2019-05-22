@@ -151,7 +151,7 @@ class DataGenerator(keras.utils.Sequence):
             np.random.shuffle(self.indexes)
         
                     
-def generate_validation_data(path_to_csv, img_shape, num_class, Ty=10, LSTM_dim_hidden_states=None, color_img=False):
+def generate_dataset(path_to_csv, img_shape, num_class, Ty=10, LSTM_dim_hidden_states=None, color_img=False):
     """
     Generate validation set
     

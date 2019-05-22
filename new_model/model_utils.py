@@ -7,7 +7,7 @@ import keras
 
 
 # -------------- ResNet-8 -------------- # 
-def convolutional_block(X, num_filters, shape_filters, strides, stage):
+def convolutional_block(X, num_filters, shape_filters, strides, stage, model_name=None):
     """
     Implementation of convolutional block in Residual network
     
@@ -30,8 +30,12 @@ def convolutional_block(X, num_filters, shape_filters, strides, stage):
     s1, s2, s3 = strides
     
     # create name
-    bn_name_base = 'bn_' + str(stage) + '_'
-    conv_name_base = 'conv_' + str(stage) + '_'
+    if model_name:
+        bn_name_base = model_name + '_bn_' 
+        conv_name_base = model_name + '_conv_'
+    else:
+        bn_name_base = 'bn_' + str(stage) + '_'
+        conv_name_base = 'conv_' + str(stage) + '_'
     
     # save value of X
     X_shorcut = X
@@ -97,7 +101,7 @@ def resnet8(input_shape):
     return model
 
 
-def resnet_shorten(input_shape):
+def resnet_shorten(input_shape, model_name=None):
     """
     Define a shorten version of resnet8 above to serve the idea of free up the last layer so that encoder can
     learn to extract different features from different image
@@ -122,7 +126,7 @@ def resnet_shorten(input_shape):
     X = convolutional_block(X, [64, 64, 64], [3, 3, 1], [2, 1, 2], stage=2)
     
     # Define model
-    model = Model(inputs=[X_input], outputs=[X])
+    model = Model(inputs=[X_input], outputs=[X], name=model_name)
     
     return model
 

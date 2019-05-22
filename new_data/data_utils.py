@@ -111,9 +111,9 @@ def distance_f2f(df1, df2, display=False):
    
 
 # FUNCTION FOR CREATING TRAINING SAMPLE
-def find_next_frame(now_idx, df, _threshold=5.):
+def find_next_frame(now_idx, df, target_frame_dist, _threshold=5.):
     """
-    Find the frame at least 0.85 meter away for frame denoted by now_idx
+    Find the frame at least 0.85 * target_frame_dist meter away for frame denoted by now_idx
     
     Output:
         next_idx (int): index in DataFrame of next frame (if any)
@@ -121,25 +121,27 @@ def find_next_frame(now_idx, df, _threshold=5.):
         d (float): distance between this frame and next frame
     """
     flag_found = False
+    
     # initialize 
     j = now_idx + 1
-    d = 0  
+    
     while not flag_found and j < len(df):
-        d = distance_f2f(df.iloc[j], df.iloc[now_idx])
-        if d > _threshold:  # invalid inter frame distance
+        if distance_f2f(df.iloc[j], df.iloc[j - 1]) > _threshold:  # invalid inter frame distance
             break
-        if distance_f2f(df.iloc[j], df.iloc[now_idx]) > 0.85:
+        
+        if distance_f2f(df.iloc[j], df.iloc[now_idx]) > 0.85*target_frame_dist:
             flag_found = True
         else:
             j += 1
     
     if flag_found:
-        return j, d
+        return j, distance_f2f(df.iloc[j], df.iloc[now_idx])
     else:
         return -1, -1
 
 
-def generate_training_sample(now_idx, df, path_prefix, len_spatial_history=10):
+def generate_training_sample(now_idx, df, path_prefix, target_frame_dist, len_spatial_history, 
+                             inter_frame_dist_threshold=5.):
     """
     Generate one training sample
     """    
@@ -152,8 +154,8 @@ def generate_training_sample(now_idx, df, path_prefix, len_spatial_history=10):
     
     flag_incomplete_sample = False
     
-    for i in range(len_spatial_history):
-        next_idx, d = find_next_frame(now_idx, df)
+    for i in range(len_spatial_history-1):
+        next_idx, d = find_next_frame(now_idx, df, target_frame_dist, inter_frame_dist_threshold)
         if next_idx > 0:  # valid next_idx
             # update now_idx with next_idx
             now_idx = next_idx
