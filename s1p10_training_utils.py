@@ -17,6 +17,16 @@ def save_lstm(lstm_obj, time_str, weight_dir):
         pickle.dump(lstm_w_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
         
+def save_layer_weight(layer, time_str, weight_dir, name):
+    weight = layer.get_weights()
+    w_dict ={}
+    for i, w in enumerate(weight):
+        w_dict[i] = w
+        
+    with open(weight_dir + "/%s_weights_%s.p" % (name, time_str), 'wb') as fp:
+        pickle.dump(w_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        
 def one_hot_encode(angle_id, num_class):
     """
     Convert angle id to one-hot encoding vector
@@ -57,10 +67,9 @@ def find_angle_id(angle, bin_edges):
 
 class DataGenerator(keras.utils.Sequence):
     def __init__(self, 
-                 dataset_csv, data_root_dir, 
-                 img_shape, 
+                 dataset_csv, 
                  num_class, 
-                 num_prediction,
+                 num_labels,
                  bins_edge,
                  batch_size=30, 
                  shuffle=True, 
@@ -69,8 +78,6 @@ class DataGenerator(keras.utils.Sequence):
         """
         Input:
             dataset_csv (string): path to csv contains dataset
-            data_root_dir (str): path to root folder of all dataset
-            img_shape (tuple): (img_height, img_width, img_channel)
             num_class (int): number of classes of angle
             num_prediction (int): number of angles will be predicted 
             bins_edge (list): list of outter edge of every bin
@@ -80,20 +87,11 @@ class DataGenerator(keras.utils.Sequence):
             flip_prob (float): probability of flipping image & subsequece steering angles
         """
         self.df = pd.read_csv(dataset_csv)
-        self.data_root_dir = data_root_dir
-        
-        # check channel of image
-        if img_shape[-1] == 1:
-            self.color_img = False
-        else:
-            self.color_img = True
-            
-        self.img_shape = img_shape
         self.batch_size = batch_size
         self.shuffle = shuffle
         
         # for training a classifier 
-        self.num_prediction = num_prediction
+        self.num_labels = num_labels
         self.num_class = num_class
         self.flip_prob = flip_prob
         self.bins_edge = bins_edge
@@ -120,36 +118,15 @@ class DataGenerator(keras.utils.Sequence):
             X (np.ndarray): shape of (batch_size, img_height, img_width, img_channel) 
             y (np.ndarray): label vector, shape (batch_size, num_prediction)
         """
-        
-        X = np.zeros((self.batch_size, ) + self.img_shape)
-        y = [np.zeros((self.batch_size, self.num_class)) for i in range(self.num_prediction)]
+        # Initialize X & y
+        y = [np.zeros((self.batch_size, self.num_class)) for i in range(self.num_labels - 1)]
+        X = [np.zeros((self.batch_size, self.num_class)) for i in range(self.num_labels - 1)]
         
         # decide when to flip the image
         flip = bernoulli.rvs(self.flip_prob, size=self.batch_size) == 1
         
         # Iterate through each idx in training batch
         for i, idx in enumerate(list_indexes): 
-            # get image file name
-            file_name = self.df.iloc[idx].frame_name
-            # read image
-            if not self.color_img:
-                img = cv.imread(self.data_root_dir + file_name, 0)
-            else:
-                img = cv.imread(self.data_root_dir + file_name, 1)
-            # resize & reshape image
-            img = np.float32(cv.resize(img, 
-                                       (self.img_shape[1], self.img_shape[0]), 
-                                       interpolation=cv.INTER_AREA))
-            if len(img.shape) == 2:
-                img = img.reshape((self.img_shape))
-            
-            # flip the image if any
-            if flip[i]:
-                img = np.fliplr(img)
-            
-            # store image to X
-            X[i, :, :, :] = img
-            
             # create y
             angle_val_list = self.df.iloc[idx].angle_val[1: -1].split(", ")
             for j, angle_val in enumerate(angle_val_list):
@@ -160,18 +137,24 @@ class DataGenerator(keras.utils.Sequence):
                     # No flip
                     angle_id = find_angle_id(float(angle_val), self.bins_edge)
                 # one-hot encode angle_id & store result to y
-                y[j][i, :] = one_hot_encode(angle_id, self.num_class)
+                one_hot_vec = one_hot_encode(angle_id, self.num_class) 
+#                 y[j][i, :] = one_hot_encode(angle_id, self.num_class)
+                
+                # create X by shifting y to the past (the left)
+                if j == 0:
+                    X[j][i, :] = one_hot_vec
+                elif j < self.num_labels - 1:
+                    y[j - 1][i, :] = one_hot_vec
+                    X[j][i, :] = one_hot_vec
+                else:
+                    y[j - 1][i, :] = one_hot_vec
+                    
+        # define a_0 & c_0
+        a_0 = np.zeros((self.batch_size, self.lstm_dim_hidden_states))
+        c_0 = np.zeros((self.batch_size, self.lstm_dim_hidden_states))
         
-        # create additional input for LSTM layer
-        if self.lstm_dim_hidden_states:
-            a0 = np.zeros((self.batch_size, self.lstm_dim_hidden_states))
-            c0 = np.zeros((self.batch_size, self.lstm_dim_hidden_states))
-            y0 = np.zeros((self.batch_size, self.num_class))
-            y_true_label = [y[i] for i in range(self.num_prediction - 1)]
-            return [X, a0, c0, y0] + y_true_label, y
-        else:
-            return X, y
-    
+        return X + [a_0, c_0], y
+        
     def __getitem__(self, index):
         """
         Generate one batch of data
