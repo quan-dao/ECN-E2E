@@ -167,7 +167,8 @@ class DataGenerator(keras.utils.Sequence):
             a0 = np.zeros((self.batch_size, self.lstm_dim_hidden_states))
             c0 = np.zeros((self.batch_size, self.lstm_dim_hidden_states))
             y0 = np.zeros((self.batch_size, self.num_class))
-            return [X, a0, c0, y0], y
+            y_true_label = [y[i] for i in range(self.num_prediction - 1)]
+            return [X, a0, c0, y0] + y_true_label, y
         else:
             return X, y
     
