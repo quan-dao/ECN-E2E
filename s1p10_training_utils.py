@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import cv2 as cv
 from scipy.stats import bernoulli
+from tqdm import tqdm
 
 
 def save_lstm(lstm_obj, time_str, weight_dir):
@@ -196,3 +197,60 @@ class DataGenerator(keras.utils.Sequence):
         self.indexes = np.arange(len(self.df))  # array of indexes of training dataset
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
+            
+            
+def gen_regressor_dataset(df_path, num_labels, image_shape, num_samples=None, data_root_dir=None, flip_prob=0.5):
+    """
+    Generate dataset as list of numpy array from dataframe
+    
+    Input:
+        df (pandas.DataFrame)
+        num_labels (int)
+        image_shape (tuple)
+       
+    Output:
+        X (numpy.ndarray): model has 1 input
+        y (list) of numpy.ndarray (y is a list because model has multiple outputs)
+    
+    """
+    df = pd.read_csv(df_path)
+    
+    if not num_samples:
+        num_samples = len(df)
+    
+    y = np.zeros((num_samples, num_labels))  # to store true value of steering angle
+    X = np.zeros((num_samples, ) + image_shape) # only 1 input
+    
+    flip = bernoulli.rvs(flip_prob, size=num_samples) == 1
+    
+    # Iterate through the whole dataset
+    for i in tqdm(range(num_samples)): 
+        # get image file name
+        file_name = df.iloc[i].frame_name
+        # read image
+        img = cv.imread(data_root_dir + file_name, 0)
+        
+        # resize & reshape image
+        img = np.float32(cv.resize(img, (image_shape[1], image_shape[0]), interpolation=cv.INTER_AREA))
+        if len(img.shape) == 2:
+            img = img.reshape((image_shape))
+
+        # flip the image if any
+        if flip[i]:
+            img = np.fliplr(img)
+
+        # store image to X
+        X[i, :, :, :] = img
+        
+        # create y
+        angle_val_list = df.iloc[i].angle_val[1: -1].split(", ")
+        
+        for j, angle_val in enumerate(angle_val_list):
+            if flip[i]:
+                y[i, j] = -float(angle_val)
+            else:
+                y[i, j] = float(angle_val)
+
+    return X, y
+         
+ 
