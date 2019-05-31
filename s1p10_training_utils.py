@@ -6,18 +6,30 @@ import cv2 as cv
 from scipy.stats import bernoulli
 from tqdm import tqdm
 
+# ---------------Metrics Helper---------------------------------
+def root_mean_squared_error(y_true, y_pred):
+    return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
-def save_lstm(lstm_obj, time_str, weight_dir):
-    lstm_w = lstm_obj.get_weights()
-    lstm_w_dict ={}
-    lstm_w_dict['0'] = lstm_w[0]
-    lstm_w_dict['1'] = lstm_w[1]
-    lstm_w_dict['2'] = lstm_w[2]
 
-    with open(weight_dir + "/lstm_weights_%s.p" % time_str, 'wb') as fp:
-        pickle.dump(lstm_w_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+class EVAMetrics(keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self._data = []
 
+    def on_epoch_end(self, batch, logs={}):
+        X_val, y_val = self.validation_data[0], self.validation_data[1]
+        y_predict = np.asarray(self.model.predict(X_val))
+
+        exp_var = sklearn.metrics.explained_variance_score(y_val, y_predict, multioutput='uniform_average')
         
+        self._data.append({
+            'EVA': exp_var,
+        })
+        return
+
+    def get_data(self):
+        return self._data
+
+# ----------------------Data Helper -------------------------------------            
 def one_hot_encode(angle_id, num_class):
     """
     Convert angle id to one-hot encoding vector
@@ -199,7 +211,10 @@ class DataGenerator(keras.utils.Sequence):
             np.random.shuffle(self.indexes)
             
             
-def gen_regressor_dataset(df_path, num_labels, image_shape, num_samples=None, data_root_dir=None, flip_prob=0.5):
+def gen_classifier_dataset(df_path, 
+                           num_classes, num_labels, bins_edge, 
+                           image_shape, 
+                           num_samples=None, data_root_dir=None, flip_prob=0.5):
     """
     Generate dataset as list of numpy array from dataframe
     
@@ -218,13 +233,15 @@ def gen_regressor_dataset(df_path, num_labels, image_shape, num_samples=None, da
     if not num_samples:
         num_samples = len(df)
     
-    y = np.zeros((num_samples, num_labels))  # to store true value of steering angle
     X = np.zeros((num_samples, ) + image_shape) # only 1 input
+    
+    # Note: j is used to iterate output list
+    y = [np.zeros((num_samples, num_classes)) for j in range(num_labels)]
     
     flip = bernoulli.rvs(flip_prob, size=num_samples) == 1
     
     # Iterate through the whole dataset
-    for i in tqdm(range(num_samples)): 
+    for i in tqdm(range(num_samples)):  # i is used to iterate batch 
         # get image file name
         file_name = df.iloc[i].frame_name
         # read image
@@ -235,7 +252,7 @@ def gen_regressor_dataset(df_path, num_labels, image_shape, num_samples=None, da
         if len(img.shape) == 2:
             img = img.reshape((image_shape))
 
-        # flip the image if any
+        # check if this sample needs to be flipped
         if flip[i]:
             img = np.fliplr(img)
 
@@ -246,10 +263,13 @@ def gen_regressor_dataset(df_path, num_labels, image_shape, num_samples=None, da
         angle_val_list = df.iloc[i].angle_val[1: -1].split(", ")
         
         for j, angle_val in enumerate(angle_val_list):
+            # find angle_id
             if flip[i]:
-                y[i, j] = -float(angle_val)
+                angle_id = find_angle_id(-float(angle_val), bins_edge)
             else:
-                y[i, j] = float(angle_val)
+                angle_id = find_angle_id(-float(angle_val), bins_edge)
+            # one hot encode
+            y[j][i, :] = one_hot_encode(angle_id, num_classes)
 
     return X, y
          
