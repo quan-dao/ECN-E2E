@@ -84,7 +84,7 @@ f = plt.figure(figsize=(10,3))
 ax = f.add_subplot(121)
 ax2 = f.add_subplot(122)
 
-for i in range(100):
+for i in range(500):
     img_name = img_list[i]
 
     # Read image

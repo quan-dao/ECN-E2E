@@ -247,8 +247,15 @@ def gen_classifier_dataset(df_path,
         # read image
         img = cv.imread(data_root_dir + file_name, 0)
         
-        # resize & reshape image
-        img = np.float32(cv.resize(img, (image_shape[1], image_shape[0]), interpolation=cv.INTER_AREA))
+        # detect edge
+#         edge = cv.Canny(img, 100, 200)
+        
+        # get bottom half
+#         bottom_half = edge[int(0.5*edge.shape[0]):, :]
+        bottom_half = img[int(0.5*img.shape[0]):, :]
+        
+        # down sample & reshape image
+        img = np.float32(cv.resize(bottom_half, (image_shape[1], image_shape[0]), interpolation=cv.INTER_AREA))
         if len(img.shape) == 2:
             img = img.reshape((image_shape))
 
