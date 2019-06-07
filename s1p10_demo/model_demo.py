@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from image import load_image
 from camera_model import CameraModel
 
+from keras.models import model_from_json
+
 
 def one_hot_to_angle(one_hot_arr):
     """
@@ -54,7 +56,7 @@ def steering_angle_to_way_pts(y_hat, s=2.0, L=3.7):
     Convert an array of steering angles to an array of way points
     
     Input
-        y_hat (list): each element is np.ndarray shape (1, NUM_LABELS)
+        y_hat (np.ndarray): shape (1, NUM_LABELS)each element is a steering angle
         s (float): arc-length
         L (float): car length
         
@@ -63,16 +65,13 @@ def steering_angle_to_way_pts(y_hat, s=2.0, L=3.7):
         in frame attached to center of rear axel at the current iamge frame
     """
 
-    # Decode pred_y to get a sequence of steering angle
-    pred_sequence = [one_hot_to_angle(y_hat[i]) for i in range(NUM_LABELS)]
-    
     # homogeneous coordinate of car's tip in any local frame
     iLi = np.array([[L, 0, 1]]).T 
     
     # initilize
     way_pts = np.zeros((3, NUM_LABELS))  # 3 rows, cuz of homogeneous coordinate
     oTi = np.eye(3)
-    for i, angle in enumerate(pred_sequence):
+    for i, angle in enumerate(y_hat):
         # calculate phi
         phi = s * tan(angle) / L
         # construct oTi
@@ -82,7 +81,7 @@ def steering_angle_to_way_pts(y_hat, s=2.0, L=3.7):
         # store oLi
         way_pts[:, i] = oLi.squeeze() 
         
-    return pred_sequence, way_pts[:2, :]
+    return y_hat, way_pts[:2, :]
 
 
 def put_in_cam(way_pts, cTw):
@@ -103,18 +102,8 @@ def rgb2gray(rgb):
 
 if __name__ == "__main__":
     
-    BINS_EDGE = np.load("./nn_data/s1p10_bins_edge.npy")
-    NUM_LABELS = 10
-    NUM_CLASSES = len(BINS_EDGE) - 1
-    
-    # Get model prediction (kind of cheating to accelerate model demotration)
-    whole_y_hat = np.load("small_sample_prediction.npy")
-    y_hat_list = [whole_y_hat[i, :, :]for i in range(NUM_LABELS)] 
-
-    print("Prediction shape: ", y_hat_list[0].shape)
-    
     # Get image name
-    img_dir = "/home/user/Downloads/sample_small/stereo/centre"
+    img_dir = "/home/user/Downloads/sample_large/stereo/centre"
     img_list = []
     for (dirpath, dirnames, filenames) in os.walk(img_dir):
         img_list.extend(filenames)
@@ -130,6 +119,55 @@ if __name__ == "__main__":
     cam_model_dir = "./extrinsics"
     cam_model = CameraModel(cam_model_dir, img_dir)
     
+    
+    if not os.path.isfile("./nn_data/prediction_oxford_large.npy"):   
+        print("[INFO] Prediction does not exist")
+        print("[INFO] Load model")
+         # Neural net setup
+        BINS_EDGE = np.load("./nn_data/s1p10_bins_edge.npy")
+        NUM_LABELS = 10
+        NUM_CLASSES = len(BINS_EDGE) - 1
+        # Load neural net model
+        MODEL_DIR = "./nn_data/"
+        MODEL_NAME = "ext_bottom_half_s1p10_model_2019_06_07_14_01"
+
+        with open(MODEL_DIR + "%s.json" % MODEL_NAME, 'r') as json_file:
+            loaded_model_json = json_file.read()
+        model = model_from_json(loaded_model_json)
+
+        model.load_weights(MODEL_DIR + "%s.h5" % MODEL_NAME)
+        print("[INFO] Loaded Neural Net from disk")
+        print("[INFO] Compute prediction")
+        # Precompute steering angle
+        X = np.zeros((len(filter_img_list), 200, 200, 1))
+        for i, name in enumerate(filter_img_list):
+            filename = os.path.join(img_dir, name)
+            _img = load_image(filename, cam_model)
+            _img = np.round(_img).astype(int)
+
+            # convert to gray scale
+            _gray_img = rgb2gray(_img)
+
+            # get bottom half
+            bottom_half = _gray_img[int(0.5 * _gray_img.shape[0]) :, :]
+
+            # down sample & reshape image
+            __img = np.float32(cv.resize(bottom_half, (200, 200), interpolation=cv.INTER_AREA))
+            if len(__img.shape) == 2:
+                __img = __img.reshape((200, 200, 1))
+
+            # store image to X
+            X[i, :, :, :] = __img
+
+        y_hat_list = model.predict(X, verbose=1)
+        np.save("./nn_data/prediction_oxford_large.npy", y_hat_list)
+    else:
+        print("[INFO] Load prediction")
+        y_hat_tensor = np.load("./nn_data/prediction_CH2_001.npy")
+        y_hat_list = [y_hat_tensor[lab_idx, :, :] for lab_idx in range(NUM_LABELS)]
+    
+    print("[INFO] Prediction shape: ", y_hat_list[0].shape)
+
     # pose of world frame (frame attached to center of rear axel) w.r.t camera frame
     cTw = np.array([[1,  0,  0, -1.72],
                     [0, -1,  0, 0.12],
@@ -138,22 +176,8 @@ if __name__ == "__main__":
     # Display image and prediction in main loop
     f = plt.figure(figsize=(10,3))
     
-    ax = f.add_subplot(131)
+    ax = f.add_subplot(111)
     ax.set_title("Perspective view")
-    
-    ax2 = f.add_subplot(132)
-#     ax2.set_title("[World] Bird-eye view")
-#     ax2.set_xlabel("Lateral (m)")
-#     ax2.set_ylabel("Longitual (m)")
-#     ax2.set_xlim(2., -2.)
-#     ax2.set_ylim(0., 25.)
-    
-    ax3 = f.add_subplot(133)
-#     ax3.set_title("[Camera] Bird-eye view")
-#     ax3.set_xlabel("Lateral (m)")
-#     ax3.set_ylabel("Longitual (m)")
-#     ax3.set_xlim(-2., 2.)
-#     ax3.set_ylim(0., 25.)
     
     for i, img_name in enumerate(filter_img_list):
         # read image
@@ -164,8 +188,10 @@ if __name__ == "__main__":
         gray_img = rgb2gray(img)
         
         # get prediction of steering angle
-        y_hat = [y_hat_list[j][i, :] for j in range(NUM_LABELS)]
-        
+        y_hat_enc = [y_hat_list[lab_idx][i, :] for lab_idx in range(NUM_LABELS)]
+        # Decode pred_y to get a sequence of steering angle
+        y_hat = [one_hot_to_angle(y_hat_enc[lab_idx]) for lab_idx in range(NUM_LABELS)]
+                
         # get way points for the tip of the car in frame attached to center of rear axel
         pred_sequence, way_pts = steering_angle_to_way_pts(y_hat)
         
@@ -184,25 +210,9 @@ if __name__ == "__main__":
         
         # display
         ax.clear()
-        ax2.clear()
-        ax3.clear()
-
-        ax2.set_title("[World] Bird-eye view")
-        ax2.set_xlabel("Lateral (m)")
-        ax2.set_ylabel("Longitual (m)")
-        ax2.set_xlim(2., -2.)
-        ax2.set_ylim(0., 25.)
-
-        ax3.set_title("[Camera] Bird-eye view")
-        ax3.set_xlabel("Lateral (m)")
-        ax3.set_ylabel("Longitual (m)")
-        ax3.set_xlim(-2., 2.)
-        ax3.set_ylim(0., 25.)
         ax.imshow(gray_img, cmap='gray')
-        ax2.plot(way_pts[1, :], way_pts[0, :], 'r:')
-        ax3.plot(cam_way_pts[1, :], cam_way_pts[0, :], 'r:')
         
-        plt.pause(.1)
+        plt.pause(.15)
         plt.draw()
     
     

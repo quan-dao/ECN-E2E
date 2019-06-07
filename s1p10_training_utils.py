@@ -274,7 +274,7 @@ def gen_classifier_dataset(df_path,
             if flip[i]:
                 angle_id = find_angle_id(-float(angle_val), bins_edge)
             else:
-                angle_id = find_angle_id(-float(angle_val), bins_edge)
+                angle_id = find_angle_id(float(angle_val), bins_edge)
             # one hot encode
             y[j][i, :] = one_hot_encode(angle_id, num_classes)
 
