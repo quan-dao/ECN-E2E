@@ -67,7 +67,8 @@ def steering_angle_to_way_pts(y_hat, s=2.0, L=3.7):
     iLi = np.array([[L, 0, 1]]).T 
     
     # initilize
-    way_pts = np.zeros((3, NUM_LABELS))  # 3 rows, cuz of homogeneous coordinate
+    num_way_pts = len(y_hat)
+    way_pts = np.zeros((3, num_way_pts))  # 3 rows, cuz of homogeneous coordinate
     oTi = np.eye(3)
     for i, angle in enumerate(y_hat):
         # calculate phi
@@ -101,7 +102,7 @@ def rgb2gray(rgb):
 if __name__ == "__main__":
     
     # Get image name
-    img_dir = "/home/user/Bureau/Dataset/udacity/Ch2_001/center"
+    img_dir = "/home/user/Bureau/Dataset/udacity/CH2_002_output/center"
     img_list = []
     for (dirpath, dirnames, filenames) in os.walk(img_dir):
         img_list.extend(filenames)
@@ -117,11 +118,12 @@ if __name__ == "__main__":
     BINS_EDGE = np.load("./nn_data/s1p10_bins_edge.npy")
     NUM_LABELS = 10
     NUM_CLASSES = len(BINS_EDGE) - 1
-    NUM_SMOOTH = 3
     
+    NUM_PRED = 4
+    NUM_SMOOTH = 5
     NUM_DEMO = 500
     
-    prediction_file = "./nn_data/prediction_CH2_001.npy"
+    prediction_file = "./nn_data/prediction_CH2_002.npy"
         
     if not os.path.isfile(prediction_file):   
         print("[INFO] Prediction does not exist")
@@ -171,7 +173,7 @@ if __name__ == "__main__":
     ax2 = f.add_subplot(122)
     
     for i, img_name in enumerate(filter_img_list):
-        if i >= NUM_DEMO:
+        if i >= NUM_DEMO - NUM_SMOOTH:
             print("Stop for debugging purpose")
             break
             
@@ -180,9 +182,15 @@ if __name__ == "__main__":
         img = cv.imread(img_path, 0)
         
         # get prediction of steering angle
-        y_hat_enc = [y_hat_list[lab_idx][i, :] for lab_idx in range(NUM_LABELS)]
-        # Decode pred_y to get a sequence of steering angle
-        y_hat = [one_hot_to_angle(y_hat_enc[lab_idx]) for lab_idx in range(NUM_LABELS)]
+        y_hat_mat = np.zeros((NUM_SMOOTH, NUM_PRED))
+        for i_off in range(NUM_SMOOTH):
+            y_hat_enc = [y_hat_list[lab_idx][i + i_off, :] for lab_idx in range(NUM_PRED)]
+            # Decode pred_y to get a sequence of steering angle
+            y_hat_mat[i_off, :] = np.array([one_hot_to_angle(y_hat_enc[lab_idx]) for lab_idx in range(NUM_PRED)])
+        
+        # average each column of y_hat_mat 
+        y_hat = np.average(y_hat_mat, axis=0)
+        
         # get way points for the tip of the car in frame attached to center of rear axel
         pred_sequence, way_pts = steering_angle_to_way_pts(y_hat, L=1.5)
         print("[INFO] predit sequence: ", pred_sequence)
