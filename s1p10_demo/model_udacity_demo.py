@@ -83,26 +83,11 @@ def steering_angle_to_way_pts(y_hat, s=2.0, L=3.7):
     return y_hat, way_pts[:2, :]
 
 
-def put_in_cam(way_pts, cTw):
-    """
-    Transfrom an array of way points in world frame (frame attached to center of rear axel) into 
-    camera frame (camera set up is according to Oxford robotcar)
-    """
-    cam_way_pts = np.zeros((3, way_pts.shape[1]))
-    for i in range(way_pts.shape[1]):
-        world_pt = np.array([[way_pts[0, i], way_pts[1, i], 0, 1]])
-        cam_way_pts[:, i] = cTw.dot(world_pt.T).squeeze()
-    return cam_way_pts
-
-
-def rgb2gray(rgb):
-    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
-
-
 if __name__ == "__main__":
     
     # Get image name
-    img_dir = "/home/user/Bureau/Dataset/udacity/CH2_002_output/center"
+#     img_dir = "/home/user/Bureau/Dataset/udacity/CH2_002_output/center"
+    img_dir = "/home/user/Bureau/Dataset/udacity/Ch2_001/center"
     img_list = []
     for (dirpath, dirnames, filenames) in os.walk(img_dir):
         img_list.extend(filenames)
@@ -123,14 +108,14 @@ if __name__ == "__main__":
     NUM_SMOOTH = 5
     NUM_DEMO = 500
     
-    prediction_file = "./nn_data/prediction_CH2_002.npy"
+    prediction_file = "./nn_data/prediction_CH2_001.npy"
         
     if not os.path.isfile(prediction_file):   
         print("[INFO] Prediction does not exist")
         print("[INFO] Load model")
         # Load neural net model
         MODEL_DIR = "./nn_data/"
-        MODEL_NAME = "ext_bottom_half_s1p10_model_2019_06_07_14_01"
+        MODEL_NAME = "ext_bottom_half_s1p10_model_2019_06_09_17_38"
 
         with open(MODEL_DIR + "%s.json" % MODEL_NAME, 'r') as json_file:
             loaded_model_json = json_file.read()
