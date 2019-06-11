@@ -252,7 +252,7 @@ def gen_classifier_dataset(df_path,
         
         # get bottom half
 #         bottom_half = edge[int(0.5*edge.shape[0]):, :]
-        bottom_half = img[int(0.5*img.shape[0]):, :]
+        bottom_half = img[100 : , :]
         
         # down sample & reshape image
         img = np.float32(cv.resize(bottom_half, (image_shape[1], image_shape[0]), interpolation=cv.INTER_AREA))
