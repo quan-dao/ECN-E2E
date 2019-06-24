@@ -18,16 +18,17 @@ Clone the repository and install the dependencies
 The dataset used to train our model is [Udaicty dataset CH2](https://github.com/udacity/self-driving-car/tree/master/datasets/CH2). This raw form of dataset is a collection of 6 bag files which need to be preprocessed to extract camera images and associated steering angles (as well as other helpful information such as GPS coordinate). The preprocessing is done thanks to [udacity-dataset-reader](https://github.com/rwightman/udacity-driving-reader). After preprocessing, a number of folders and files are created; however, only the folder `center` and `interpolated.csv` which respectively contains the images captured by front-facing camera and detail information (e.g. timestamp, filename, steering angle, GPS coordiante).
 
 The repository structure should be organized as following
-`
-./data/
-      |
-      |-> training_data/
-                        |
-                        |->center/
-                                  |
-                                  |->timestamp.jpeg
-                        |
-                        |->interpolated.csv`
+```
+project
+│   README.md
+│   
+└───data
+│   │   interpolated.csv
+│   └───center
+│       │   timestamp_1.jpeg
+│       │   timestamp_2.jpeg
+│       │   ...
+```
 
 ## Dataset preparation
 To enable learning a geometrical path, the model is shown an image of the environment in front of the car and it is meant to output a sequence of steering angles in which the first angle is directly applied to the image and each subsequence angle is 2 meters away from its predecessor. To serve this purpose, the data needs to encorporate the distance between each label. 
