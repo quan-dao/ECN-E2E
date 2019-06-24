@@ -37,6 +37,7 @@ To enable learning a geometrical path, the model is shown an image of the enviro
 Furthermore, to increase the reliable of model's prediction, the training problem is formulated as a classification problem. In details, the recorded steering angle spectrum is discretized into intervals of length 2 degree. Then instead of directly predicting a steering angle, the model predicts the bin that the steering angle belong to. The advantage of this approach is that model's performance during training can also be measured by the ***accuracy*** metric, in addition to the ***cross-entroy loss***. 
 
 These preparation phases are done in ***./data/dataset_preparation.ipynb***. An example of training sample is shown in Fig.1
+
 ![alt text][training_sample]
 Fig.1 A training sample
 
