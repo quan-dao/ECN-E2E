@@ -3,3 +3,10 @@
 __pycache__
 
 !.gitignore
+
+/data/training_data/**/*.jpg
+/data/CH2*.npy
+/data/**/CH2*.npy
+
+/logs_graphs/**/*.png
+/logs_graphs/**/*.pdf
