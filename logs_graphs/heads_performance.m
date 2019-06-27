@@ -1,6 +1,12 @@
-function fig = plot_together(log_date, str_type, R, C, is_val, save, filetype)
-%PLOT_TOGETHER Summary of this function goes here
-%   Detailed explanation goes here
+function fig = heads_performance(log_date, str_type, R, C, is_val, save, filetype)
+%HEADS_PERFORMANCE This function plots the accuracy or loss of all the
+%heads in training or validation in one graph
+%   log_date = date of the log to use
+%   str_type = "acc" for accuracy, "loss" for loss
+%   (R,C) = starting coord of the data in .csv files
+%   is_val = "true" if for the validation, "false" if for the training 
+%   save = if "true" saves the plots to file and auto-closes the figures
+%   filetype = filetype of the saved plot ("pdf" or "png")
 
     % Fullscreen printing give problems with pdf saving
     if filetype == "pdf"

@@ -1,6 +1,11 @@
-function fig = plot_compared_all(log_date, str_type, R, C, save, filetype, layout)
-%PLOT_TOGETHER Summary of this function goes here
-%   Detailed explanation goes here
+function fig = compare_all_heads(log_date, str_type, R, C, save, filetype, layout)
+%COMPARE_ALL_HEADS This function plots the comparison (training vs. validation)
+% for accuracy or loss of all the heads in one graph
+%   log_date = date of the log to use
+%   str_type = "acc" for accuracy, "loss" for loss
+%   (R,C) = starting coord of the data in .csv files
+%   save = if "true" saves the plots to file and auto-closes the figures
+%   filetype = filetype of the saved plot ("pdf" or "png")re
 
     % Fullscreen printing give problems with pdf saving
     fig = figure('Units','normalized','Position',[0 0 1 1]);
