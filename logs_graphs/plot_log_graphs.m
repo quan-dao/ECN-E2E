@@ -37,7 +37,7 @@ function plot_log_graphs(log_date, print, filetype, layout)
     end
 
     % Loss
-    for i = 0:4
+    for i = -1:4
         compare_head(log_date, 'loss',  R,C, i, print, filetype);
     end
 
