@@ -4,9 +4,14 @@ __pycache__
 
 !.gitignore
 
+*.pyc
+
 /data/training_data/**/*.jpg
 /data/CH2*.npy
 /data/**/CH2*.npy
 
 /logs_graphs/**/*.png
 /logs_graphs/**/*.pdf
+
+/demo/demo_img/*
+/demo/*.tar

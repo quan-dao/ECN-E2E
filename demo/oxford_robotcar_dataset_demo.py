@@ -127,7 +127,7 @@ NUM_SMOOTH = 5  # number of prediction in the future used to smoothen the curren
 print("[INFO] Loading model")
 # Load neural net model
 MODEL_DIR = "./../best_weights/2019_06_17_14_25/"
-MODEL_NAME = "s1p10_model_2019_06_17_14_25"
+MODEL_NAME = "s1p5_model_2019_06_17_14_25"
 with open(MODEL_DIR + "%s.json" % MODEL_NAME, 'r') as json_file:
     loaded_model_json = json_file.read()
 model = model_from_json(loaded_model_json)
