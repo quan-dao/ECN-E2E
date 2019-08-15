@@ -1,9 +1,11 @@
 [//]: # (Image References)
 
-[confusion_matrix]: ./images/norm_confusion_matrix_2.png
+[confusion_matrix]: ./images/norm_confusion_mat.png
 [layers_activation]: ./images/layers_activation.png
 [conceptual_model_arch]: ./images/conceptual_model_arch.png
 [training_sample]: ./images/training_sample_2.png
+[udacity_demo_1]: ./images/udacity_path_1.png
+[udacity_demo_2]: ./images/udacity_path_2.png
 
 # Intro
 This project is an attemp to train a neural network to drive a car in an end-to-end fashion. This approach to autonomous driving is not knew and had been proven by NVIDIA's DAVE-2. The difference we try to make here is to help our model learn `a sequence of steering angles` rather than just one steering angle which have been done is a number of publications. 
@@ -24,43 +26,49 @@ project
 │   README.md
 │   
 └───data
-│   │   interpolated.csv
-│   └───center
-│       │   timestamp_1.jpeg
-│       │   timestamp_2.jpeg
-│       │   ...
+|   |
+|   └───training_data
+│       │   interpolated.csv
+│       └───center
+│           │   timestamp_1.jpeg
+│           │   timestamp_2.jpeg
+│           │   ...
 ```
 
 ## Dataset preparation
 To enable learning a geometrical path, the model is shown an image of the environment in front of the car and it is meant to output a sequence of steering angles in which the first angle is directly applied to the image and each subsequence angle is 2 meters away from its predecessor. To serve this purpose, the data needs to encorporate the distance between each label. 
 
-Furthermore, to increase the reliable of model's prediction, the training problem is formulated as a classification problem. In details, the recorded steering angle spectrum is discretized into intervals of length 2 degree. Then instead of directly predicting a steering angle, the model predicts the bin that the steering angle belong to. The advantage of this approach is that model's performance during training can also be measured by the ***accuracy*** metric, in addition to the ***cross-entroy loss***. 
+Furthermore, to increase the reliable of model's prediction, the training problem is formulated as a classification problem. In details, the recorded steering angle spectrum is discretized into intervals of length `1 degree`. Then instead of directly predicting a steering angle, the model predicts the class that the steering angle belong to. The advantage of this approach is that model's performance during training can also be measured by the ***accuracy*** metric, in addition to the ***cross-entroy loss***. Moreover, with sufficiently small bins, the resulted model can outperform regression-based ones (e.g. DroNet)
 
-These preparation phases are done in ***./data/dataset_preparation.ipynb***. An example of training sample is shown in Fig.1
+These preparation phases are done in `./data/dataset_preparation.ipynb`. An example of training sample is shown in Fig.1
 
 ![alt text][training_sample]
 Fig.1 A training sample
 
-The viability of this training formulation is shown in our implementation of `learning a steering angle` where we just replace the regressor at top of the ***DroNet*** with a classifier. This classifier reaches the accuracy of 63% on the validation set.
+After executing `dataset_preparation.ipynb`, 2 .csv files will be created. One file cotains the information of the input to the model, the other contains the expected output. To transform these files into 2 tensors `X` and `y` which in turn can be used for training or evaluation, you need to use `csv_to_npy.py` with synctax:
+
+`python csv_to_npy.py --csv_file_path --csv_type --model_type`
+
+Example of `csv_file_path` is `./data/CH2_training.csv`. The `csv_type` takes one of 2 values: `training` or `validation`. The `model_type` takes `classifier` or `regressor`.
 
 # Model architect
-The architect used in this project (Fig.2) is adapted from [DroNet: Learning to fly by driving](https://github.com/uzh-rpg/rpg_public_dronet). The body is made of 3 ResNet layers. The original output layer, with one neurons for performing regression on steering angle and another for predicting the collision probability, is replaced by an array of classififers each comprised of one Dense layer activated by ReLU and another Dense layer acitvated by Softmax to output the one-hot representation of steering angle class.
+The architect used in this project (Fig.2) is adapted from [DroNet: Learning to fly by driving](https://github.com/uzh-rpg/rpg_public_dronet). The body is made of 3 ResNet blocks. The original output layer, with one neurons for performing regression on steering angle and another for predicting the collision probability, is replaced by an array of classififers each comprised of one Dense layer activated by ReLU and another Dense layer acitvated by Softmax to output the one-hot representation of steering angle class.
 
 ![alt text][conceptual_model_arch]
 Fig.2 Model architect
 
 # Model performance
-After training for 35 epochs, our model's performance is compared to the ***DroNet*** and some other model on Root Mean Square Error (RMSE) and Explained Variance (EVA) metric. Since our model employs 5 classifiers (call ***Head***) to predict 5 steering angles, those two metrics are calculated for each classifier. 
+After training for 100 epochs, our model's performance is better than ***DroNet*** and some other model on Root Mean Square Error (RMSE) and Explained Variance (EVA) metric. Since our model employs 5 classifiers (call ***Head***) to predict 5 steering angles, those two metrics are calculated for each classifier. 
 
 Model | RMSE | EVA
 ---- | ---- | ----
 Constant baseline | 0.2129 | 0
 DroNet | 0.1090 | 0.7370
-Head_0 | 0.1101 | 0.8245
-Head_1 | 0.1159 | 0.8042
-Head_2 | 0.1012 | 0.8491
-Head_3 | 0.1159 | 0.8020
-Head_4 | 0.1050 | 0.8409
+Head_0 | 0.0869 | 0.8933
+Head_1 | 0.0920 | 0.8781
+Head_2 | 0.1052 | 0.8382
+Head_3 | 0.0820 | 0.9012
+Head_4 | 0.0851 | 0.8943
 
 The quality of classification is shown in confusition matrix below. This matrix features a strong main diagonal which means that the majority of predicted angle classes is actually the true class.
 
@@ -71,3 +79,7 @@ In addition, in an attemp to understand what the model has learned, the activati
 
 ![alt text][layers_activation]
 Fig.4 Activation of each ResNet block
+
+The path predicted by the model compared against the ground truth is shown in Fig.5 which indicates a good match. The extended video of our model's prediction given the data from Udacity dataset Challenge 2 can be found in ***https://youtu.be/X2fi2xVr2jE***. The interpretation of a sequence of steering angle into a path is implemented in  `./demo/udacity_dataset_demo_2.py`. Before executing this file, please use `csv_to_npy.py` to convert `./data/demo_dataset.csv` to 2 npy files: one contains the input images and the other contains the true sequence of steering angle for each images.
+
+![alt-text-1][udacity_demo_1] ![alt-text-2][udacity_demo_2]
