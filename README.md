@@ -17,6 +17,8 @@ Clone the repository and install the dependencies
 
 `pip install -r requirement.txt`
 
+Trained model can be downloaded at [this Google Drive folder](https://drive.google.com/drive/folders/1jBgFkUjP8UZmm19ByMTegBQEiMpTsVHb?usp=sharing). After being downloaded, the trained models need to be put in `best_weights` folder.
+
 ## Dataset
 The dataset used to train our model is [Udaicty dataset CH2](https://github.com/udacity/self-driving-car/tree/master/datasets/CH2). This raw form of dataset is a collection of 6 bag files which need to be preprocessed to extract camera images and associated steering angles (as well as other helpful information such as GPS coordinate). The preprocessing is done thanks to [udacity-dataset-reader](https://github.com/rwightman/udacity-driving-reader). After preprocessing, a number of folders and files are created; however, only the folder `center` and `interpolated.csv` which respectively contains the images captured by front-facing camera and detail information (e.g. timestamp, filename, steering angle, GPS coordiante).
 
@@ -24,7 +26,9 @@ The repository structure should be organized as following
 ```
 project
 │   README.md
-│   
+│
+└───best_weights
+|
 └───data
 |   |
 |   └───training_data
@@ -83,3 +87,19 @@ Fig.4 Activation of each ResNet block
 The path predicted by the model compared against the ground truth is shown in Fig.5 which indicates a good match. The extended video of our model's prediction given the data from Udacity dataset Challenge 2 can be found in ***https://youtu.be/X2fi2xVr2jE***. The interpretation of a sequence of steering angle into a path is implemented in  `./demo/udacity_dataset_demo_2.py`. Before executing this file, please use `csv_to_npy.py` to convert `./data/demo_dataset.csv` to 2 npy files: one contains the input images and the other contains the true sequence of steering angle for each images.
 
 ![alt-text-1][udacity_demo_1] ![alt-text-2][udacity_demo_2]
+Fig.5 Predicted paths compared to their ground truth
+
+# Reference
+If you use this code in an academic context, please cite the following paper:
+
+`M. Q. Dao, D. Lanza and V. Frémont, "End-to-End Deep Neural Network Design for Short-term Path Planning", 11th IROS Workshop on Planning, Perception, Navigation for Intelligent Vehicle (PPNIV 2019 - IROS 2019), Macau, China, November 2019.`
+
+<pre><code>
+@inproceedings{Dao_PPNIV_2019, 
+    author={M. Q. {Dao} and D. {Lanza} and V. {Fremont}}, 
+    booktitle={11th IROS Workshop on Planning, Perception, Navigation for Intelligent Vehicle (PPNIV 2019)}, 
+    title={End-to-End Deep Neural Network Design for Short-term Path Planning}, 
+    year={2019}, 
+    month={November},}
+</code></pre>
+
