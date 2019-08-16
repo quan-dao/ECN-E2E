@@ -90,7 +90,7 @@ The path predicted by the model compared against the ground truth is shown in Fi
 Fig.5 Predicted paths compared to their ground truth
 
 # Reference
-If you use this code in an academic context, please cite the following paper:
+If you use this code in an academic context, please cite the following [paper](./documentation/paper_Dao_Lanza_Fremont_PPNIV2019_Final_version.pdf):
 
 `M. Q. Dao, D. Lanza and V. Frémont, "End-to-End Deep Neural Network Design for Short-term Path Planning", 11th IROS Workshop on Planning, Perception, Navigation for Intelligent Vehicle (PPNIV 2019 - IROS 2019), Macau, China, November 2019.`
 
